@@ -48,57 +48,64 @@
 
     </div>
 
-    <script>
-        function uploadFiles() {
-            const input = document.getElementById('fileInput');
-            const files = input.files;
-            const progressBar = document.getElementById('progressBar');
+<script>
+    function uploadFiles() {
+        const input = document.getElementById('fileInput');
+        const files = input.files;
+        const progressBar = document.getElementById('progressBar');
 
-            if (!files.length) {
-                alert("Please select at least one file.");
+        if (!files.length) {
+            alert("Please select at least one file.");
+            return;
+        }
+
+        let currentFile = 0;
+
+        const uploadNext = () => {
+            if (currentFile >= files.length) {
+                setTimeout(() => location.reload(), 1000);
                 return;
             }
 
-            let uploaded = 0;
-            const totalFiles = files.length;
+            const file = files[currentFile];
 
-            const uploadNext = (index) => {
-                if (index >= totalFiles) {
-                    progressBar.style.width = "100%";
-                    setTimeout(() => location.reload(), 1000);
-                    return;
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            // REAL upload progress
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = (event.loaded / event.total) * 100;
+                    progressBar.style.width = percent + "%";
                 }
-
-                const file = files[index];
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/upload', true);
-
-                xhr.onload = () => {
-                    if (xhr.status === 200) {
-                        uploaded++;
-                        const progress = (uploaded / totalFiles) * 100;
-                        progressBar.style.width = progress + "%";
-                        uploadNext(index + 1);
-                    } else {
-                        alert('Failed to upload: ' + file.name);
-                        uploadNext(index + 1);
-                    }
-                };
-
-                xhr.onerror = () => {
-                    alert('Error uploading: ' + file.name);
-                    uploadNext(index + 1);
-                };
-
-                xhr.send(formData);
             };
 
-            uploadNext(0);
-        }
-    </script>
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    currentFile++;
+
+                    // reset bar for next file
+                    progressBar.style.width = "0%";
+
+                    uploadNext();
+                } else {
+                    alert('Failed to upload: ' + file.name);
+                }
+            };
+
+            xhr.onerror = () => {
+                alert('Error uploading: ' + file.name);
+            };
+
+            xhr.send(formData);
+        };
+
+        uploadNext();
+    }
+</script>
 </body>
 </html>
     
